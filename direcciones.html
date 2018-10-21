@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Place Autocomplete</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <style>
+      #map {
+          margin-top: 2em;
+        height: 80%;
+      }
+
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #pac-input, #coords {
+          width: 100%
+      }
+    </style>
+</head>
+
+<body>
+    <div id="pac-card">
+        <div>
+            <div id="title"> Search a place: </div>
+        </div>
+        <div id="pac-container">
+            <input id="pac-input" type="text" placeholder="Enter a location">
+            <input type="text" id="coords" disabled>
+        </div>
+    </div>
+    <div id="map"></div>
+    <script>
+        var map 
+        var geocoder
+        var zoom = 17
+        var inputCoords = document.getElementById('coords')
+
+        function update() {
+            let coords = {
+                lat: marker.getPosition().lat(),
+                lng: marker.getPosition().lng()
+            }
+            geocodeLatLng(coords)
+        }
+
+        function geocodeLatLng(coords) {
+            geocoder.geocode({ 'location': coords }, function (results, status) {
+                if (status === 'OK') {
+                    if (results[0]) {
+                        marker.setVisible(false)
+                        map.setZoom(zoom)
+
+                        marker.setPosition(coords)
+                        marker.setDraggable(true)
+                        marker.setVisible(true)
+
+                        inputCoords.value = JSON.stringify(coords)
+                        console.log(coords)
+                        document.getElementById('pac-input').value = results[0].formatted_address
+                    } else {
+                        window.alert('No results found')
+                    }
+                } else {
+                    window.alert('Geocoder failed due to: ' + status)
+                }
+            })
+        }
+
+        function initMap() {
+            geocoder = new google.maps.Geocoder
+
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 19.432241, lng: -99.177254 },
+                zoom: zoom
+            })
+
+            marker = new google.maps.Marker({
+                map: map,
+                draggable: true,
+                position: { lat: 19.432241, lng: -99.177254 }
+            })
+
+            google.maps.event.addListener(marker, 'dragend', update)
+
+            let input = document.getElementById('pac-input')
+            let autocomplete = new google.maps.places.Autocomplete(input)
+
+            autocomplete.bindTo('bounds', map)
+            autocomplete.setFields(['address_components', 'geometry', 'icon', 'name'])
+
+            autocomplete.addListener('place_changed', function () {
+                marker.setVisible(false)
+                var place = autocomplete.getPlace()
+
+                if (!place.geometry) {
+                    window.alert("No details available for input: '" + place.name + "'")
+                    return
+                }
+
+                if (place.geometry.viewport) {
+                    map.fitBounds(place.geometry.viewport)
+                } else {
+                    map.setCenter(place.geometry.location)
+                }
+                inputCoords.value = JSON.stringify(place.geometry.location)
+                
+                map.setZoom(zoom)
+                marker.setPosition(place.geometry.location)
+                marker.setDraggable(true)
+                marker.setVisible(true)
+            })
+        }
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=API_KEY&libraries=places&callback=initMap"
+        async defer></script>
+</body>
+
+</html>
